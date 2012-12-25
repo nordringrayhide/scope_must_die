@@ -1,0 +1,13 @@
+.*
+!.gitignore
+!.gitkeeper
+!*.example
+/bin
+/.bundle
+
+/db/*.sqlite3
+
+/log/*.log
+/tmp
+/test
+/doc
