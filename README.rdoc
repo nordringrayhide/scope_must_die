@@ -1,8 +1,43 @@
+Мне надоело каждый раз объяснять почему я не использую scopes  и почему они должны быть упразднены.
+Для этого я накидал этот проект.
 
-    User.first.rules.active_only
-      User Load (0.2ms)  SELECT "users".* FROM "users" LIMIT 1
-      Rule Load (0.6ms)  SELECT "rules".* FROM "rules" WHERE "rules"."owner_id" = 1 AND "rules"."active" = 't'
-    => [#<Rule id: 1, owner_id: 1, active: true, created_at: "2012-12-25 22:03:02", updated_at: "2012-12-25 22:03:02">]
+  class User < ActiveRecord::Base
+    has_many :rules
+  end
+
+  class Rule < ActiveRecord::Base
+    belongs_to :user
+
+    scope :active_only, lambda { where(:active => true) }
+  
+    def self.active
+      where(:active => true)
+    end
+  end
+
+Test Case: User.first.rules.active
+
+Scopes были актуальны до Rails 3.0 потому, что их можно было сцеплять.
+После того как был введен ActiveRecord::Relation стало возможным сцеплять методы и потому использовать scope нужда отпала.
+
+Синтаксис scopes это другой способ определить метод, причем не очень удобный. Нет ни одного аргумента "за" держать две конструкции для выполнения одной и то же задачи. Тем более что в случае scope надо еще использовать lambda, что-бы их тело не вычислялось при загрузке класса.
+
+Для упрощение сопровождения кода необходимо убирать дублирование конструкций которые в нем используються, дабы уменьшить нагрузку на того кому его проверять и сопровождать.
+
+Мне не совсем понятен момент почему их продолжают культивировать в Rails4 и к тому же изуродовали "новым" синтаксисом анонимных функций(функторов) и хешей, вместо того, что-бы просто принять волевое решение заменить все методами.
+
+  In Rails 4, all scopes must use a callable object such as a Proc or lambda:
+
+  class Team < ActiveRecord::Base
+    scope :active, -> { where(status: 'active') }
+  end
+
+Обе конструкции дают абсолютно одинаковые результаты. Зачем больше?
+
+  User.first.rules.active_only
+    User Load (0.2ms)  SELECT "users".* FROM "users" LIMIT 1
+    Rule Load (0.6ms)  SELECT "rules".* FROM "rules" WHERE "rules"."owner_id" = 1 AND "rules"."active" = 't'
+  => [#<Rule id: 1, owner_id: 1, active: true, created_at: "2012-12-25 22:03:02", updated_at: "2012-12-25 22:03:02">]
 
   irb(main):002:0> User.first.rules.active
     User Load (0.9ms)  SELECT "users".* FROM "users" LIMIT 1
@@ -15,3 +50,7 @@
   irb(main):004:0> User.first.rules.active_only.class
     User Load (2.1ms)  SELECT "users".* FROM "users" LIMIT 1
   => ActiveRecord::Relation
+
+«Не следует множить сущее без необходимости». (Бритва Оккама)
+
+"Ежики кололись, плакали, но продолжали юзать scopes" © Roman V. Babenko
